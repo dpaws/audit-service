@@ -1,0 +1,9 @@
+[template]
+ src   = "config.json.tmpl"
+ dest  = "/app/conf/config.json"
+ keys = [
+  "/http/host",
+  "/http/port",
+  "/jdbc/url",
+  "/jdbc/driverclass"
+ ]

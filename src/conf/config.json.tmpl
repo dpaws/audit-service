@@ -1,0 +1,8 @@
+{
+  "HTTP_HOST": "{{getv "/http/host" "localhost"}}",
+  "HTTP_PORT": {{getv "/http/port" "35000"}},
+  "jdbc": {
+    "url": "{{getv "/jdbc/url" "jdbc:hsqldb:file:/tmp/audit-db;shutdown=true"}}",
+    "driverclass": "{{getv "/jdbc/driverclass" "org.hsqldb.jdbcDriver"}}"
+  }
+}
