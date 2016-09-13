@@ -13,11 +13,14 @@ services:
       args:
         app_version: ${APP_VERSION}
     environment:
+      HTTP_HOST: app
+      HTTP_PORT: 8000
       CLUSTER_GROUP_PASSWORD: password
     command:
       - java
       - -jar
-      - /app/portfolio-service-${APP_VERSION}-fat.jar
+      - /app/audit-service-${APP_VERSION}-fat.jar
+      - -conf=/app/conf/config.json
       - -Dvertx.hazelcast.config=/app/conf/cluster.xml
       - -cluster
   test:
@@ -29,5 +32,5 @@ services:
     command:
       - mvn
       - test
-      - -Dtest=PortfolioServiceTest
+      - -Dtest=AuditServiceTest
       - -Dvertx.hazelcast.config=/app/conf/cluster.xml
