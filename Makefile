@@ -11,6 +11,11 @@ TEST_REPO_NAME ?= audit-service-dev
 # Common settings
 include Makefile.settings
 
+# Database settings
+export DB_NAME ?= audit
+export DB_USER ?= audit
+export DB_PASSWORD ?= password
+
 .PHONY: version demo test build release clean tag login logout publish compose dcompose database save load
 
 # Prints version
@@ -40,9 +45,11 @@ test: init
 # Builds release image and runs acceptance tests
 release: init
 	${INFO} "Pulling latest images..."
-	@ $(if $(NOPULL_ARG),,docker-compose $(RELEASE_ARGS) pull test)
+	@ $(if $(NOPULL_ARG),,docker-compose $(RELEASE_ARGS) pull agent db test)
 	${INFO} "Building images..."
 	@ docker-compose $(RELEASE_ARGS) build $(NOPULL_FLAG) app
+	${INFO} "Ensuring database is up..."
+	@ docker-compose $(RELEASE_ARGS) run agent
 	${INFO} "Running acceptance tests..."
 	@ docker-compose $(RELEASE_ARGS) up -d app
 # @ docker cp $$(docker-compose $(RELEASE_ARGS) ps -q test):/app/target/surefire-reports/. reports
@@ -111,7 +118,7 @@ load:
 #   e.g. 'make compose ps' is the equivalent of docker-compose -f path/to/dockerfile -p <project-name> ps
 #   e.g. 'make compose run nginx' is the equivalent of docker-compose -f path/to/dockerfile -p <project-name> run nginx
 #
-# Use '--'' after make to pass flags/arguments 
+# Use '--'' after make to pass flags/arguments
 #   e.g. 'make -- compose run --rm nginx' ensures the '--rm' flag is passed to docker-compose and not interpreted by make
 compose: init
 	${INFO} "Running docker-compose command in release environment..."
@@ -121,7 +128,7 @@ compose: init
 #   e.g. 'make dcompose ps' is the equivalent of docker-compose -f path/to/dockerfile -p <project-name> ps
 #   e.g. 'make dcompose run test' is the equivalent of docker-compose -f path/to/dockerfile -p <project-name> run test
 #
-# Use '--'' after make to pass flags/arguments 
+# Use '--'' after make to pass flags/arguments
 #   e.g. 'make -- compose run --rm test' ensures the '--rm' flag is passed to docker-compose and not interpreted by make
 dcompose: init
 	${INFO} "Running docker-compose command in test environment..."

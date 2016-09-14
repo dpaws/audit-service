@@ -15,7 +15,10 @@ services:
     environment:
       HTTP_HOST: app
       HTTP_PORT: 8000
+      CLUSTER_GROUP_NAME: audit-service
       CLUSTER_GROUP_PASSWORD: password
+      JDBC_URL: jdbc:mysql://db/${DB_NAME}?username=${DB_USER}&password=${DB_PASSWORD}
+      JDBC_DRIVERCLASS: com.mysql.jdbc.Driver
     command:
       - java
       - -jar
@@ -23,11 +26,26 @@ services:
       - -conf=/app/conf/config.json
       - -Dvertx.hazelcast.config=/app/conf/cluster.xml
       - -cluster
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+  agent:
+    image: dockerproductionaws/ansible
+    links:
+      - db
+    environment:
+      PROBE_HOST: db
+      PROBE_PORT: 3306
   test:
     image: dockerproductionaws/microtrader-test
     links:
       - app
     environment:
+      CLUSTER_GROUP_NAME: audit-service
       CLUSTER_GROUP_PASSWORD: password
     command:
       - mvn
