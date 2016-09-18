@@ -4,5 +4,5 @@ LABEL application=audit-service
 
 # Copy application artefacts
 ARG app_version
-ENV app_version $app_version
-COPY target/audit-service-${app_version}-fat.jar /app/
+LABEL application.version=${app_version}
+COPY target/audit-service-${app_version}-fat.jar /app/app.jar

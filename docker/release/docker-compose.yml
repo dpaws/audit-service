@@ -21,12 +21,6 @@ services:
       JDBC_USER: ${DB_USER}
       JDBC_PASSWORD: ${DB_PASSWORD}
       JDBC_DRIVERCLASS: com.mysql.jdbc.Driver
-    command:
-       - java
-       - -jar
-       - /app/audit-service-${APP_VERSION}-fat.jar
-       - -Dvertx.hazelcast.config=/app/conf/cluster.xml
-       - -cluster
   migrate:
     build:
       context: ../../
@@ -42,7 +36,7 @@ services:
     command:
        - java
        - -cp
-       - /app/audit-service-${APP_VERSION}-fat.jar
+       - /app/app.jar
        - com.pluralsight.dockerproductionaws.admin.Migrate
   db:
     image: mysql:5.7
