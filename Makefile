@@ -8,13 +8,13 @@ ORG_NAME ?= dockerproductionaws
 REPO_NAME ?= audit-service
 TEST_REPO_NAME ?= audit-service-dev
 
-# Common settings
-include Makefile.settings
-
 # Database settings
 export DB_NAME ?= audit
 export DB_USER ?= audit
 export DB_PASSWORD ?= password
+
+# Common settings
+include Makefile.settings
 
 .PHONY: version demo test build release clean tag login logout publish compose dcompose database save load
 
