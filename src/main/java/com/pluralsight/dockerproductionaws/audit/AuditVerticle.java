@@ -103,7 +103,7 @@ public class AuditVerticle extends MicroserviceVerticle {
 
                     // 3. Build the list of operations
                     List<JsonObject> operations = set.getRows().stream()
-                            .map(json -> new JsonObject(json.getString("OPERATION")))
+                            .map(json -> new JsonObject(json.getString("operation")))
                             .collect(Collectors.toList());
 
                     // 4. Send the list to the response
