@@ -16,11 +16,15 @@ export DB_PASSWORD ?= password
 # Common settings
 include Makefile.settings
 
-.PHONY: version demo test build release clean tag login logout publish compose dcompose database save load
+.PHONY: version version%hash test build release clean tag login logout publish compose dcompose database save load all
 
 # Prints version
 version:
 	@ echo $(APP_VERSION)
+
+# Prints short commit hash
+version%hash:
+	@ echo $$(git rev-parse --short HEAD)
 
 # Creates workflow infrastucture
 init:
@@ -57,6 +61,12 @@ release: init
 # @ docker cp $$(docker-compose $(RELEASE_ARGS) ps -q test):/app/target/surefire-reports/. reports
 # ${CHECK} $(REL_PROJECT) $(REL_COMPOSE_FILE) test
 	${INFO} "Acceptance testing complete"
+
+# Executes a full workflow
+all: clean test release
+	@ make tag latest $$(make version) $$(make version:hash)
+	@ make publish
+	@ make clean
 
 # Cleans environment
 clean:
