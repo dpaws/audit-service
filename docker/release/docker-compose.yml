@@ -17,15 +17,33 @@ services:
       HTTP_PORT: 8000
       CLUSTER_GROUP_NAME: audit-service
       CLUSTER_GROUP_PASSWORD: password
-      JDBC_URL: jdbc:mysql://db/${DB_NAME}?username=${DB_USER}&password=${DB_PASSWORD}
+      JDBC_URL: jdbc:mysql://db/${DB_NAME}?useSSL=false
+      JDBC_USER: ${DB_USER}
+      JDBC_PASSWORD: ${DB_PASSWORD}
       JDBC_DRIVERCLASS: com.mysql.jdbc.Driver
     command:
-      - java
-      - -jar
-      - /app/audit-service-${APP_VERSION}-fat.jar
-      - -conf=/app/conf/config.json
-      - -Dvertx.hazelcast.config=/app/conf/cluster.xml
-      - -cluster
+       - java
+       - -jar
+       - /app/audit-service-${APP_VERSION}-fat.jar
+       - -Dvertx.hazelcast.config=/app/conf/cluster.xml
+       - -cluster
+  migrate:
+    build:
+      context: ../../
+      dockerfile: docker/release/Dockerfile
+      args:
+        app_version: ${APP_VERSION}
+    environment:
+      JDBC_URL: jdbc:mysql://db/${DB_NAME}?useSSL=false
+      JDBC_USER: ${DB_USER}
+      JDBC_PASSWORD: ${DB_PASSWORD}
+      JDBC_DRIVERCLASS: com.mysql.jdbc.Driver
+      DB_MIGRATIONS_LOCATION: db/mysql
+    command:
+       - java
+       - -cp
+       - /app/audit-service-${APP_VERSION}-fat.jar
+       - com.pluralsight.dockerproductionaws.admin.Migrate
   db:
     image: mysql:5.7
     environment:

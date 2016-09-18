@@ -47,9 +47,11 @@ release: init
 	${INFO} "Pulling latest images..."
 	@ $(if $(NOPULL_ARG),,docker-compose $(RELEASE_ARGS) pull agent db test)
 	${INFO} "Building images..."
-	@ docker-compose $(RELEASE_ARGS) build $(NOPULL_FLAG) app
+	@ docker-compose $(RELEASE_ARGS) build $(NOPULL_FLAG) app migrate
 	${INFO} "Ensuring database is up..."
 	@ docker-compose $(RELEASE_ARGS) run agent
+	${INFO} "Running migrations..."
+	@ docker-compose $(RELEASE_ARGS) run migrate
 	${INFO} "Running acceptance tests..."
 	@ docker-compose $(RELEASE_ARGS) up -d app
 # @ docker cp $$(docker-compose $(RELEASE_ARGS) ps -q test):/app/target/surefire-reports/. reports

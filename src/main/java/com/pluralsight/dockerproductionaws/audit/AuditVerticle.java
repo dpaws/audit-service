@@ -1,7 +1,9 @@
 package com.pluralsight.dockerproductionaws.audit;
 
-import com.pluralsight.dockerproductionaws.common.Chain;
 import com.pluralsight.dockerproductionaws.common.MicroserviceVerticle;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -20,7 +22,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.servicediscovery.types.MessageSource;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -28,11 +29,9 @@ import java.util.stream.Collectors;
  */
 public class AuditVerticle extends MicroserviceVerticle {
 
-    private static final String DROP_STATEMENT = "DROP TABLE IF EXISTS AUDIT";
-    private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE IF NOT EXISTS AUDIT (id INTEGER IDENTITY, operation varchar(250))";
-    private static final String INSERT_STATEMENT = "INSERT INTO AUDIT (operation) VALUES ?";
-    private static final String SELECT_STATEMENT = "SELECT * FROM AUDIT ORDER BY ID DESC LIMIT 10";
-
+    private static final String INSERT_STATEMENT = "INSERT INTO audit (operation) VALUES (?)";
+    private static final String SELECT_STATEMENT = "SELECT * FROM audit ORDER BY id DESC LIMIT 10";
+    private Config config;
     private JDBCClient jdbc;
 
     /**
@@ -43,18 +42,21 @@ public class AuditVerticle extends MicroserviceVerticle {
      * @param future the future to indicate the completion
      */
     @Override
-    public void start(Future<Void> future) {
+    public void start(Future<Void> future) throws ClassNotFoundException {
         super.start();
 
+        // Get configuration
+        config = ConfigFactory.load();
+
         // creates the jdbc client.
-        JsonObject jdbcConfig = config().getJsonObject("jdbc");
+        JsonObject jdbcConfig = new JsonObject(config.getObject("jdbc").render(ConfigRenderOptions.concise()));
         jdbc = JDBCClient.createNonShared(vertx, jdbcConfig);
+        Class.forName(jdbcConfig.getString("driverclass"));
 
         Future<HttpServer> httpEndpointReady = configureTheHTTPServer();
         Future<MessageConsumer<JsonObject>> messageListenerReady = retrieveThePortfolioMessageSource();
-        Future<Void> databaseReady = initializeDatabase(jdbcConfig.getBoolean("drop", false));
 
-        CompositeFuture.all(httpEndpointReady, databaseReady, messageListenerReady)
+        CompositeFuture.all(httpEndpointReady, messageListenerReady)
                 .setHandler(ar -> {
                     if (ar.succeeded()) {
                         // Register the handle called on messages
@@ -66,7 +68,7 @@ public class AuditVerticle extends MicroserviceVerticle {
                     }
                 });
 
-        publishHttpEndpoint("audit", config().getString("HTTP_HOST", "localhost"), config().getInteger("HTTP_PORT"), ar -> {
+        publishHttpEndpoint("audit", config.getString("http.host"), config.getInt("http.port"), ar -> {
             if (ar.failed()) {
                 ar.cause().printStackTrace();
             } else {
@@ -123,7 +125,7 @@ public class AuditVerticle extends MicroserviceVerticle {
 
         vertx.createHttpServer()
                 .requestHandler(router::accept)
-                .listen(config().getInteger("HTTP_PORT"), future.completer());
+                .listen(config.getInt("http.port"), future.completer());
 
         return future;
     }
@@ -143,7 +145,6 @@ public class AuditVerticle extends MicroserviceVerticle {
         // 1. need to retrieve a connection
         // 2. execute the insertion statement
         // 3. close the connection
-
         Future<SQLConnection> connectionRetrieved = Future.future();
         Future<UpdateResult> insertionDone = Future.future();
 
@@ -154,7 +155,7 @@ public class AuditVerticle extends MicroserviceVerticle {
         connectionRetrieved.setHandler(
                 ar -> {
                     if (ar.failed()) {
-                        System.err.println("Failed to insert operation in database: " + ar.cause());
+                        System.err.println("Failed to connect to database: " + ar.cause());
                     } else {
                         SQLConnection connection = ar.result();
                         connection.updateWithParams(INSERT_STATEMENT,
@@ -166,63 +167,14 @@ public class AuditVerticle extends MicroserviceVerticle {
 
         // Step 3, when the insertion is done, close the connection.
         insertionDone.setHandler(
-                ar -> connectionRetrieved.result().close()
-        );
-    }
-
-    private Future<Void> initializeDatabase(boolean drop) {
-        // The database initialization is a multi-step process:
-        // 1. Retrieve the connection
-        // 2. Drop the table is exist
-        // 3. Create the table
-        // 4. Close the connection (in any case)
-        // To handle such a process, we are going to create a set of Future we are going to compose as a chain:
-        // retrieve the connection -> drop table -> create table -> close the connection
-        // For this we use `Function<X, Future<R>>`that takes a parameter `X` and return a `Future<R>` object.
-
-        // This is the returned future to notify of the completion of the whole process
-        Future<Void> databaseReady = Future.future();
-
-        // This future will be assigned when the connection with the database is established.
-        // We are going to use this future as a reference on the connection to close it.
-        Future<SQLConnection> connectionRetrieved = Future.future();
-        // Retrieve a connection with the database, report on the databaseReady if failed, or assign the connectionRetrieved
-        // future.
-        jdbc.getConnection(connectionRetrieved.completer());
-
-        // When the connection is retrieved, we want to drop the table (if drop is set to true)
-        Function<SQLConnection, Future<SQLConnection>> dropTable = connection -> {
-            Future<SQLConnection> future = Future.future();
-            if (!drop) {
-                future.complete(connection); // Immediate completion.
-            } else {
-                connection.execute(DROP_STATEMENT, completer(future, connection));
-            }
-            return future;
-        };
-
-        // When the table is dropped, we recreate it
-        Function<SQLConnection, Future<Void>> createTable = connection -> {
-            Future<Void> future = Future.future();
-            connection.execute(CREATE_TABLE_STATEMENT, future.completer());
-            return future;
-        };
-
-        // Ok, now it's time to chain all these actions:
-        // connectionRetrieved -> dropTable -> createTable -> in all case close the connection
-
-        Chain.chain(connectionRetrieved, dropTable, createTable)
-                .setHandler(ar -> {
-                    // Whatever the result, if the connection has been retrieved, close it
-                    if (connectionRetrieved.result() != null) {
+                ar -> {
+                    if (ar.failed()) {
+                        System.err.println("Failed to insert operation in database: " + ar.cause());
+                    } else {
                         connectionRetrieved.result().close();
                     }
-
-                    // Complete the main future with the result.
-                    databaseReady.completer().handle(ar);
-                });
-
-        return databaseReady;
+                }
+        );
     }
 
     /**
