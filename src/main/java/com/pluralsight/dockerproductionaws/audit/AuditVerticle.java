@@ -121,7 +121,7 @@ public class AuditVerticle extends MicroserviceVerticle {
 
         // Use a Vert.x Web router for this REST API.
         Router router = Router.router(vertx);
-        router.get("/").handler(this::retrieveOperations);
+        router.get(config.getString("http.root")).handler(this::retrieveOperations);
 
         vertx.createHttpServer()
                 .requestHandler(router::accept)
