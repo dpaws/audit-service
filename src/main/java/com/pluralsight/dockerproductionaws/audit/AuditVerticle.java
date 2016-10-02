@@ -8,6 +8,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
@@ -53,20 +54,20 @@ public class AuditVerticle extends MicroserviceVerticle {
         jdbc = JDBCClient.createNonShared(vertx, jdbcConfig);
         Class.forName(jdbcConfig.getString("driverclass"));
 
+        // Start HTTP server and listen for portfolio events
+        EventBus eventBus = vertx.eventBus();
         Future<HttpServer> httpEndpointReady = configureTheHTTPServer();
-        Future<MessageConsumer<JsonObject>> messageListenerReady = retrieveThePortfolioMessageSource();
-
-        CompositeFuture.all(httpEndpointReady, messageListenerReady)
-                .setHandler(ar -> {
-                    if (ar.succeeded()) {
-                        // Register the handle called on messages
-                        messageListenerReady.result().handler(message -> storeInDatabase(message.body()));
-                        // Notify the completion
-                        future.complete();
-                    } else {
-                        future.fail(ar.cause());
-                    }
-                });
+        httpEndpointReady.setHandler(ar -> {
+           if (ar.succeeded()) {
+               MessageConsumer<JsonObject> portfolioConsumer = eventBus.consumer(config.getString("portfolio.events"));
+               portfolioConsumer.handler(message -> {
+                   storeInDatabase(message.body());
+               });
+               future.complete();
+           } else {
+               future.fail(ar.cause());
+           }
+        });
 
         publishHttpEndpoint("audit", config.getString("http.host"), config.getInt("http.public.port"), config.getString("http.root"), ar -> {
             if (ar.failed()) {
