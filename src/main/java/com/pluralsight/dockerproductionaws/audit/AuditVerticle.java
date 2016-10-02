@@ -68,7 +68,7 @@ public class AuditVerticle extends MicroserviceVerticle {
                     }
                 });
 
-        publishHttpEndpoint("audit", config.getString("http.host"), config.getInt("http.port"), ar -> {
+        publishHttpEndpoint("audit", config.getString("http.host"), config.getInt("http.public.port"), config.getString("http.root"), ar -> {
             if (ar.failed()) {
                 ar.cause().printStackTrace();
             } else {

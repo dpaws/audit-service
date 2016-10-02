@@ -26,9 +26,9 @@ public class MicroserviceVerticle extends AbstractVerticle {
         discovery = ServiceDiscovery.create(vertx, new ServiceDiscoveryOptions().setBackendConfiguration(config()));
     }
 
-    public void publishHttpEndpoint(String name, String host, int port, Handler<AsyncResult<Void>>
+    public void publishHttpEndpoint(String name, String host, int port, String root, Handler<AsyncResult<Void>>
             completionHandler) {
-        Record record = HttpEndpoint.createRecord(name, host, port, "/");
+        Record record = HttpEndpoint.createRecord(name, host, port, root);
         publish(record, completionHandler);
     }
 
