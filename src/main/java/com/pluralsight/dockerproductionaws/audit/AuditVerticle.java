@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
  */
 public class AuditVerticle extends MicroserviceVerticle {
 
-    private static final String INSERT_STATEMENT = "INSERT INTO audit (operation) VALUES (?)";
-    private static final String SELECT_STATEMENT = "SELECT * FROM audit ORDER BY id DESC LIMIT 10";
+    private static final String INSERT_STATEMENT = "INSERT INTO AUDIT (OPERATION) VALUES (?)";
+    private static final String SELECT_STATEMENT = "SELECT * FROM AUDIT ORDER BY ID DESC LIMIT 10";
     private Config config;
     private JDBCClient jdbc;
 
@@ -104,7 +104,7 @@ public class AuditVerticle extends MicroserviceVerticle {
 
                     // 3. Build the list of operations
                     List<JsonObject> operations = set.getRows().stream()
-                            .map(json -> new JsonObject(json.getString("operation")))
+                            .map(json -> new JsonObject(json.getString("OPERATION")))
                             .collect(Collectors.toList());
 
                     // 4. Send the list to the response
