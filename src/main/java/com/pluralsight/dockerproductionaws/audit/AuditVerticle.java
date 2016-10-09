@@ -194,7 +194,5 @@ public class AuditVerticle extends MicroserviceVerticle {
             }
         };
     }
-
-
 }
 

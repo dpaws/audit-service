@@ -4,7 +4,7 @@ include .env
 
 # Project variables
 PROJECT_NAME ?= audit-service
-ORG_NAME ?= dockerproductionaws
+ORG_NAME ?= dpaws
 REPO_NAME ?= audit-service
 TEST_REPO_NAME ?= audit-service-dev
 

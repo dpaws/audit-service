@@ -46,14 +46,14 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
   agent:
-    image: dockerproductionaws/ansible
+    image: dpaws/ansible
     links:
       - db
     environment:
       PROBE_HOST: db
       PROBE_PORT: 3306
   test:
-    image: dockerproductionaws/microtrader-test
+    image: dpaws/microtrader-test
     links:
       - app
     environment:
