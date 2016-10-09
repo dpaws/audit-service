@@ -134,6 +134,11 @@
       <version>5.1.39</version>
     </dependency>
     <dependency>
+      <groupId>com.github.docker-production-aws</groupId>
+      <artifactId>microtrader-common</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
       <version>4.0.3</version>
