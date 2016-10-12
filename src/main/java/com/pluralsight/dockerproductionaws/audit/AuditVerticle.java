@@ -84,19 +84,14 @@ public class AuditVerticle extends MicroserviceVerticle {
         super.stop(future);
     }
 
-    private void retrieveOperations(RoutingContext context) {
-        // We retrieve the operation using the following process:
-        // 1. Get the connection
-        // 2. When done, execute the query
-        // 3. When done, iterate over the result to build a list
-        // 4. close the connection
-        // 5. return this list in the response
+    private Future<List<JsonObject>> retrieveOperations() {
+        Future<List<JsonObject>> future = Future.future();
 
         // 1 - we retrieve the connection
         jdbc.getConnection(ar -> {
             SQLConnection connection = ar.result();
             if (ar.failed()) {
-                context.fail(ar.cause());
+                future.fail(ar.cause());
             } else {
                 // 2. we execute the query
                 connection.query(SELECT_STATEMENT, result -> {
@@ -108,13 +103,14 @@ public class AuditVerticle extends MicroserviceVerticle {
                             .collect(Collectors.toList());
 
                     // 4. Send the list to the response
-                    context.response().setStatusCode(200).end(Json.encodePrettily(operations));
+                    future.complete(operations);
 
                     // 5. Close the connection
                     connection.close();
                 });
             }
         });
+        return future;
     }
 
     private Future<HttpServer> configureTheHTTPServer() {
@@ -122,7 +118,16 @@ public class AuditVerticle extends MicroserviceVerticle {
 
         // Use a Vert.x Web router for this REST API.
         Router router = Router.router(vertx);
-        router.get(config.getString("http.root")).handler(this::retrieveOperations);
+        router.get(config.getString("http.root")).handler(context -> {
+            Future<List<JsonObject>> jdbcFuture = retrieveOperations();
+            jdbcFuture.setHandler(jdbc -> {
+                if (jdbc.succeeded()) {
+                    context.response().setStatusCode(200).end(Json.encodePrettily(jdbcFuture.result()));
+                } else {
+                    context.response().setStatusCode(500).end(jdbc.cause().toString());
+                }
+            });
+        });
 
         vertx.createHttpServer()
                 .requestHandler(router::accept)
