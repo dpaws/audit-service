@@ -56,6 +56,7 @@ services:
     image: dpaws/microtrader-test
     links:
       - app
+    dns_search: .
     environment:
       CLUSTER_GROUP_NAME: audit-service
       CLUSTER_GROUP_PASSWORD: password

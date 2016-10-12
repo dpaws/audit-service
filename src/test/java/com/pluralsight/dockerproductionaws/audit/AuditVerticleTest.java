@@ -68,7 +68,6 @@ public class AuditVerticleTest {
                     JsonArray body = buffer.toJsonArray();
                     context.assertEquals(body.size(), 3);
                     async.complete();
-
                 });
             }).end();
         });

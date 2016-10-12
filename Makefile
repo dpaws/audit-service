@@ -53,9 +53,9 @@ release: init
 	${INFO} "Running migrations..."
 	@ docker-compose $(RELEASE_ARGS) run migrate
 	${INFO} "Running acceptance tests..."
-	@ docker-compose $(RELEASE_ARGS) up -d app
-# @ docker cp $$(docker-compose $(RELEASE_ARGS) ps -q test):/app/target/surefire-reports/. reports
-# ${CHECK} $(REL_PROJECT) $(REL_COMPOSE_FILE) test
+	@ docker-compose $(RELEASE_ARGS) up test
+	@ docker cp $$(docker-compose $(RELEASE_ARGS) ps -q test):/app/target/surefire-reports/. reports
+	${CHECK} $(REL_PROJECT) $(REL_COMPOSE_FILE) test
 	${INFO} "Acceptance testing complete"
 
 # Executes a full workflow
